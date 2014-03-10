@@ -1,0 +1,34 @@
+ifndef ICE_HOME
+    ICE_HOME := ${X_ICE_HOME}
+endif
+
+ICE_LIBS := -L$(ICE_HOME)/lib -lIce -lIceUtil
+CXX := c++
+DFLAGS := $(DFLAGS) -D__UNIX__ -Wno-deprecated
+HEADERS := $(HEADERS) -I$(ICE_HOME)/include -I$(TOP_DIR)/include -I.
+
+LDFLAGS := $(LDFLAGS) -L. -L$(TOP_DIR)/lib $(ICE_LIBS) -L$(TOP_DIR)/lib -lc -lm -lpthread
+CPPFLAGS := $(CPPFLAGS) $(DFLAGS) $(HEADERS)
+CXXFLAGS := $(CXXFLAGS) -g -ftemplate-depth-128 -fPIC -D_REENTRANT
+
+COMMON_DIR := $(TOP_DIR)/src/common
+DEPS_ICES := $(wildcard $(COMMON_DIR)/*.ice)
+ICE_HDRS := $(foreach i,$(basename $(DEPS_ICES)),$(i).h)
+ICE_SRCS := $(foreach i,$(basename $(DEPS_ICES)),$(i).cpp)
+LOCAL_HDRS := $(filter-out $(ICE_HDRS),$(wildcard $(COMMON_DIR)/*.h)) $(ICE_HDRS)
+DEPS_HDRS := $(foreach i,$(notdir $(LOCAL_HDRS)),$(TOP_DIR)/include/$(i))
+DEPS_SRCS := $(filter-out $(ICE_SRCS),$(wildcard $(COMMON_DIR)/*.cpp)) $(ICE_SRCS)
+DEPS_OBJS := $(foreach i,$(basename $(DEPS_SRCS)),$(i).o)
+
+$(DEPS_HDRS): $(DEPS_ICES)
+	cd $(COMMON_DIR); $(MAKE); cd -
+
+$(DEPS_OBJS): $(DEPS_HDRS)
+	cd $(COMMON_DIR); $(MAKE); cd -
+
+.cpp.o:
+	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) $<
+
+.c.o:
+	$(CC) -c $(CPPFLAGS) $(CFLAGS) $<
+
